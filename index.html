@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Nepalese Law Assistant</title>
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700&family=Noto+Sans:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+  <!-- Material Icons -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet"
+  />
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <!-- Theme Configuration -->
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#135bec",
+            "background-light": "#f6f6f8",
+            "background-dark": "#101622",
+            "sidebar-dark": "#111722",
+            "border-dark": "#232f48",
+          },
+          fontFamily: {
+            display: ["Public Sans", "Noto Sans", "sans-serif"],
+          },
+          borderRadius: {
+            DEFAULT: "0.25rem",
+            lg: "0.5rem",
+            xl: "0.75rem",
+            "2xl": "1rem",
+            full: "9999px",
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    /* Custom Scrollbar for Webkit */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #232f48;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #35425e;
+    }
+  </style>
+</head>
+<body
+  class="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white font-display"
+>
+  <div class="flex h-screen w-full overflow-hidden">
+    <!-- Sidebar -->
+    <aside
+      class="hidden md:flex w-[280px] flex-col border-r border-border-dark bg-sidebar-dark shrink-0"
+    >
+      <!-- Sidebar Header / New Chat -->
+      <div class="p-4 pt-5 pb-2">
+        <button
+          id="new-chat-btn"
+          class="flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 bg-primary hover:bg-primary/90 transition-colors text-white text-sm font-bold leading-normal tracking-[0.015em]"
+        >
+          <span class="material-symbols-outlined text-[20px]">add</span>
+          <span class="truncate">New Chat</span>
+        </button>
+      </div>
+
+      <!-- History List (dynamic) -->
+      <div
+        id="history-container"
+        class="flex-1 overflow-y-auto px-2 py-2"
+      >
+        <!-- Conversation history items will be inserted here by JS -->
+      </div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <main
+      class="flex flex-1 flex-col h-full relative bg-background-light dark:bg-background-dark"
+    >
+      <!-- Header -->
+      <header
+        class="flex h-16 shrink-0 items-center justify-between border-b border-border-dark px-4 lg:px-8 bg-background-light dark:bg-[#111722] z-10"
+      >
+        <div class="flex items-center gap-4 text-[#111418] dark:text-white">
+          <div
+            class="md:hidden p-2 -ml-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#232f48] cursor-pointer"
+          >
+            <span class="material-symbols-outlined">menu</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div
+              class="size-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary"
+            >
+              <span class="material-symbols-outlined">balance</span>
+            </div>
+            <h2
+              class="text-lg font-bold leading-tight tracking-[-0.015em]"
+            >
+              Nepalese Law Assistant
+            </h2>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- Removed info button -->
+          <button
+            class="flex items-center justify-center rounded-lg h-9 w-9 text-[#637588] dark:text-[#92a4c9] hover:bg-gray-200 dark:hover:bg-[#232f48] transition-colors"
+          >
+            <span class="material-symbols-outlined text-[20px]"
+              >ios_share</span
+            >
+          </button>
+        </div>
+      </header>
+
+      <!-- Chat Content Scroll Area -->
+      <div class="flex-1 overflow-y-auto px-4 py-6 scroll-smooth">
+        <div
+          id="chat-container"
+          class="mx-auto flex max-w-[800px] flex-col gap-6 pb-24"
+        >
+          <!-- Chat messages will be inserted here by JS -->
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div
+        class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-background-light via-background-light to-transparent dark:from-background-dark dark:via-background-dark dark:to-transparent px-4 pb-6 pt-10"
+      >
+        <div class="mx-auto max-w-[800px]">
+          <!-- Arena selector -->
+          <select
+            id="arena-select"
+            class="mb-2 border border-[#e5e7eb] dark:border-border-dark bg-white dark:bg-[#111722] text-xs rounded-lg px-3 py-1 text-[#111418] dark:text-white"
+          >
+            <option value="All (auto)">All (auto)</option>
+            <option value="Pharmacy Act">Pharmacy Act</option>
+            <option value="Immunization Act">Immunization Act</option>
+            <option value="Constitution of Nepal">
+              Constitution of Nepal
+            </option>
+            <option value="Single Women Act">Single Women Act</option>
+            <option value="Sports Act">Sports Act</option>
+          </select>
+
+          <div
+            class="relative flex items-end gap-2 rounded-xl border border-[#e5e7eb] dark:border-border-dark bg-white dark:bg-[#111722] p-2 shadow-lg ring-offset-2 focus-within:ring-2 focus-within:ring-primary/50 transition-shadow"
+          >
+            <!-- Removed + (attach file) button -->
+            <textarea
+              id="user-input"
+              class="flex-1 max-h-32 min-h-[44px] resize-none border-0 bg-transparent py-2.5 text-base text-[#111418] dark:text-white placeholder:text-gray-400 focus:ring-0 leading-normal"
+              placeholder="Ask your question about Nepali law..."
+              rows="1"
+            ></textarea>
+            <button
+              id="send-btn"
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-white hover:bg-blue-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span class="material-symbols-outlined text-[20px] ml-0.5"
+                >send</span
+              >
+            </button>
+          </div>
+
+          <p
+            class="mt-2 text-center text-xs text-[#637588] dark:text-[#6a7a92]"
+          >
+            AI can make mistakes. Please verify important legal
+            information.
+          </p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const textarea = document.getElementById("user-input");
+    const sendBtn = document.getElementById("send-btn");
+    const chatContainer = document.getElementById("chat-container");
+    const arenaSelect = document.getElementById("arena-select");
+    const newChatBtn = document.getElementById("new-chat-btn");
+    const historyContainer = document.getElementById("history-container");
+
+    // --- Conversation state ---
+    let conversations = [];
+    let currentConversationId = null;
+    let botMsgCounter = 0;
+
+    function createNewConversation() {
+      const id = "conv-" + Date.now();
+      const conv = {
+        id,
+        title: "New chat",
+        messages: [],
+        createdAt: new Date(),
+      };
+      conversations.unshift(conv); // newest at top
+      currentConversationId = id;
+      renderHistory();
+      renderConversation();
+    }
+
+    function getCurrentConversation() {
+      return conversations.find((c) => c.id === currentConversationId) || null;
+    }
+
+    // --- Rendering history in sidebar ---
+    function renderHistory() {
+      historyContainer.innerHTML = "";
+
+      if (conversations.length === 0) {
+        historyContainer.innerHTML =
+          '<div class="px-4 py-3 text-xs text-[#92a4c9]">No chats yet.</div>';
+        return;
+      }
+
+      conversations.forEach((conv) => {
+        const isActive = conv.id === currentConversationId;
+        const item = document.createElement("div");
+        item.className =
+          "group flex items-center gap-3 rounded-lg px-3 py-3 mb-1 cursor-pointer transition-colors " +
+          (isActive ? "bg-[#232f48]" : "hover:bg-[#232f48]/50");
+        item.innerHTML = `
+          <span class="material-symbols-outlined ${
+            isActive ? "text-white" : "text-[#92a4c9]"
+          } text-[20px]">${
+          isActive ? "chat_bubble" : "chat_bubble_outline"
+        }</span>
+          <div class="flex-1 overflow-hidden">
+            <p class="truncate text-sm font-medium ${
+              isActive ? "text-white" : "text-[#d0dbe7]"
+            }">${escapeHtml(conv.title)}</p>
+          </div>
+        `;
+        item.addEventListener("click", () => {
+          currentConversationId = conv.id;
+          renderHistory();
+          renderConversation();
+        });
+        historyContainer.appendChild(item);
+      });
+    }
+
+    // --- Rendering a conversation in the main chat ---
+    function renderConversation() {
+      const conv = getCurrentConversation();
+      chatContainer.innerHTML = "";
+
+      if (!conv || conv.messages.length === 0) {
+        const welcome = document.createElement("div");
+        welcome.className =
+          "flex flex-col items=center justify-center py-10 opacity-70";
+        welcome.innerHTML = `
+          <span class="material-symbols-outlined text-6xl text-[#92a4c9] mb-4">gavel</span>
+          <h2 class="text-center text-2xl font-bold mb-2">Namaste! How can I help with Nepalese Law?</h2>
+          <p class="text-[#92a4c9] text-center max-w-md text-sm">
+            Ask about the Constitution, Pharmacy Act, Immunization Act, Single Women Act, Sports Act, and more.
+          </p>
+        `;
+        chatContainer.appendChild(welcome);
+        return;
+      }
+
+      conv.messages.forEach((msg) => {
+        if (msg.role === "user") {
+          const wrapper = document.createElement("div");
+          wrapper.className = "flex w-full justify-end pl-10";
+          wrapper.innerHTML = `
+            <div class="bg-primary text-white rounded-2xl rounded-tr-sm px-5 py-3 shadow-sm max-w-full md:max-w-[85%]">
+              <p class="text-base leading-relaxed">${escapeHtml(msg.text)}</p>
+            </div>
+          `;
+          chatContainer.appendChild(wrapper);
+        } else if (msg.role === "assistant") {
+          const wrapper = document.createElement("div");
+          wrapper.className = "flex w-full gap-4 pr-4 md:pr-10";
+          wrapper.innerHTML = `
+            <div class="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full bg-gradient-to-tr from-emerald-500 to-emerald-700 text-white shadow-sm">
+              <span class="material-symbols-outlined text-[18px]">smart_toy</span>
+            </div>
+            <div class="flex flex-col gap-2 flex-1 min-w-0">
+              <div class="text-sm font-bold text-[#111418] dark:text-white">Law Assistant</div>
+              <div class="rounded-2xl rounded-tl-sm bg-white dark:bg[#1c2534] border border-[#e5e7eb] dark:border-[#232f48] px-5 py-4 shadow-sm text-[#111418] dark:text[#d0dbe7] text-base leading-relaxed">
+                <p class="mb-2 whitespace-pre-wrap">${escapeHtml(msg.text)}</p>
+              </div>
+            </div>
+          `;
+          chatContainer.appendChild(wrapper);
+        }
+      });
+
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const message = textarea.value.trim();
+      if (!message) return;
+
+      const arena = arenaSelect ? arenaSelect.value : "All (auto)";
+
+      if (!getCurrentConversation()) {
+        createNewConversation();
+      }
+
+      const conv = getCurrentConversation();
+      conv.messages.push({ role: "user", text: message });
+
+      if (conv.title === "New chat") {
+        conv.title =
+          message.length > 30 ? message.slice(0, 30) + "..." : message;
+      }
+
+      renderHistory();
+      renderConversation();
+
+      textarea.value = "";
+      textarea.style.height = "auto";
+
+      const thinkingId = appendBotThinking();
+
+      try {
+        const resp = await fetch("http://127.0.0.1:8000/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, arena }),
+        });
+
+        if (!resp.ok) {
+          throw new Error("Server error");
+        }
+
+        const data = await resp.json();
+
+        replaceBotThinking(thinkingId, data.answer);
+
+        const conv2 = getCurrentConversation();
+        if (conv2) {
+          conv2.messages.push({ role: "assistant", text: data.answer });
+        }
+        renderHistory();
+      } catch (err) {
+        console.error(err);
+        replaceBotThinking(thinkingId, "Error: Could not contact server.");
+      }
+    }
+
+    function appendBotThinking() {
+      const id = "bot-msg-" + ++botMsgCounter;
+      const wrapper = document.createElement("div");
+      wrapper.id = id;
+      wrapper.className = "flex w-full gap-4 pr-4 md:pr-10";
+      wrapper.innerHTML = `
+        <div class="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full bg-gradient-to-tr from-emerald-500 to-emerald-700 text-white shadow-sm">
+          <span class="material-symbols-outlined text-[18px]">smart_toy</span>
+        </div>
+        <div class="flex flex-col gap-2 flex-1 min-w-0">
+          <div class="text-sm font-bold text-[#111418] dark:text-white">Law Assistant</div>
+          <div class="rounded-2xl rounded-tl-sm bg-white dark:bg-[#1c2534] border border-[#e5e7eb] dark:border-[#232f48] px-5 py-4 shadow-sm text-[#111418] dark:text-[#d0dbe7] text-base leading-relaxed">
+            <p class="mb-2 italic text-sm text-[#637588] dark:text-[#92a4c9]">Thinking...</p>
+          </div>
+        </div>
+      `;
+      chatContainer.appendChild(wrapper);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+      return id;
+    }
+
+    function replaceBotThinking(id, answerText) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = `
+        <div class="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full bg-gradient-to-tr from-emerald-500 to-emerald-700 text-white shadow-sm">
+          <span class="material-symbols-outlined text-[18px]">smart_toy</span>
+        </div>
+        <div class="flex flex-col gap-2 flex-1 min-w-0">
+          <div class="text-sm font-bold text-[#111418] dark:text-white">Law Assistant</div>
+          <div class="rounded-2xl rounded-tl-sm bg-white dark:bg-[#1c2534] border border-[#e5e7eb] dark:border-[#232f48] px-5 py-4 shadow-sm text-[#111418] dark:text-[#d0dbe7] text-base leading-relaxed">
+            <p class="mb-2 whitespace-pre-wrap">${escapeHtml(answerText)}</p>
+          </div>
+        </div>
+      `;
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.innerText = text;
+      return div.innerHTML;
+    }
+
+    textarea.addEventListener("input", function () {
+      this.style.height = "auto";
+      this.style.height = this.scrollHeight + "px";
+    });
+
+    sendBtn.addEventListener("click", sendMessage);
+    textarea.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    newChatBtn.addEventListener("click", function () {
+      createNewConversation();
+    });
+
+    createNewConversation();
+  </script>
+</body>
+</html>
