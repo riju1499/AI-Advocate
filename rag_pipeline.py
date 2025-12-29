@@ -347,6 +347,9 @@ llm = ChatGroq(
 )
 
 
+
+
+
 def correct_nepali_spelling(text: str, llm) -> str:
     prompt = f"""तलको पाठ नेपाली भाषामा लेखिएको छ तर वर्तनी (spelling) 
 र व्याकरणमा केही त्रुटि हुन सक्छ।
@@ -488,6 +491,98 @@ def choose_where(query: str, norm_query: str) -> dict | None:
         return {"source_file": "sports.pdf"}
 
     return None
+def rag_with_context(
+    query: str,
+    retriever,
+    llm,
+    top_k: int = 6,
+    arena: str = "All (auto)",
+):
+    """
+    Same as rag_simple, but returns (final_answer, context_text)
+    so we can evaluate faithfulness/correctness against the legal text.
+    """
+    # Expand and normalize
+    expanded_query = expand_query_with_llm(query, llm)
+    norm_query = normalize_to_nepali(expanded_query, llm)
+
+    # Decide which PDFs to search
+    category_where = build_where_for_category(arena)
+    auto_where = choose_where(query, norm_query)
+    where = category_where if category_where is not None else auto_where
+
+    if arena != "All (auto)":
+        effective_top_k = max(top_k, 10)
+    else:
+        effective_top_k = top_k
+
+    # Retrieve
+    results = retriever.retrieve(norm_query, top_k=effective_top_k, where=where)
+    if not results:
+        results = retriever.retrieve(query, top_k=effective_top_k, where=where)
+
+    if not results:
+        return "सहित सन्दर्भ (context) फेला परेन, त्यसैले म जवाफ दिन सक्दिन।", ""
+
+    # Build context
+    max_chars = 2000
+    context_parts = []
+    current_len = 0
+    for doc in results:
+        text = doc["content"]
+        if current_len + len(text) > max_chars:
+            break
+        context_parts.append(text)
+        current_len += len(text)
+    context = "\n\n".join(context_parts)
+
+    # Same answering prompt as rag_simple
+    prompt = f"""तपाईं नेपाली कानुन बुझ्ने कानुनी सहायक हुनुहुन्छ। तल दिइएको सन्दर्भ 
+फार्मेसी, खोप, संविधान, एकल महिला, खेलकुद लगायतका नेपाली कानून तथा नीतिहरूबाट 
+लिइएको हो। सन्दर्भको मूल पाठमा टाइप/OCR सम्बन्धी त्रुटि हुन सक्छ।
+
+कडा नियम:
+- सोधिएको प्रश्नको उत्तर केवल सन्दर्भमा भएको कानुनी व्यवस्थामा आधारित भएर मात्र दिनुहोस्।
+- कानुनको भाषा (धारा/उपधारा) जति सकिन्छ त्यति नजिकबाट प्रस्तुत गर्नुहोस्; यदि आवश्यक परे मात्र
+  छोटो व्याख्या/स्पष्टीकरण थप्नुहोस्।
+- एउटै कुरा अनावश्यक रूपमा धेरैचोटि दोहोर्याउनु हुँदैन।
+- यदि सन्दर्भमा स्पष्ट जवाफ छैन भने, प्रष्ट रूपमा लेख्नुस्:
+  "मलाई थाहा छैन। यो जानकारी दिइएको सन्दर्भमा छैन।"
+- कुनै पनि हालतमा सन्दर्भमा नदेखिएको नयाँ कानुनी दाबी वा धारा/व्यवस्था नबनाउनुहोस्। अनुमान नगरौँ।
+
+सन्दर्भ (कानुनी पाठ):
+{context}
+
+प्रश्न (प्रयोगकर्ताको मूल इनपुट):
+{query}
+
+अन्तर्रूप (normalize) गरिएको प्रश्न:
+{norm_query}
+
+कृपया पहिलो भागमा कानुनको प्रासंगिक अंश (धारा/उपधारा) उद्धृत/सारांशित गर्नुहोस्,
+र दोस्रो भागमा छोटो बुँदागत व्याख्या दिनुहोस्। कानूनबाहिरको अनुमान नगर्नुहोस्।
+
+जवाफ नेपाली भाषामा:
+"""
+    resp = llm.invoke(prompt)
+    raw_answer = resp.content.strip()
+
+    # De-duplicate lines
+    lines = [l.strip() for l in raw_answer.splitlines() if l.strip()]
+    seen = set()
+    dedup_lines = []
+    for line in lines:
+        norm_line = re.sub(r"\s+", " ", line)
+        if norm_line not in seen:
+            seen.add(norm_line)
+            dedup_lines.append(line)
+    dedup_answer = "\n".join(dedup_lines)
+
+    final_answer = correct_nepali_spelling(dedup_answer, llm)
+
+    return final_answer, context
+
+
 
 
 # -------------------------------------------------------------------
@@ -556,7 +651,7 @@ def rag_simple(
         current_len += len(text)
     context = "\n\n".join(context_parts)
 
-    # 5) Prompt for answer (updated to all laws + paraphrase)
+        # 5) Prompt for answer (simpler, direct answer)
     prompt = f"""तपाईं नेपाली कानुन बुझ्ने कानुनी सहायक हुनुहुन्छ। तल दिइएको सन्दर्भ 
 फार्मेसी, खोप, संविधान, एकल महिला, खेलकुद लगायतका नेपाली कानून तथा नीतिहरूबाट 
 लिइएको हो। सन्दर्भको मूल पाठमा टाइप/OCR सम्बन्धी त्रुटि हुन सक्छ।
@@ -602,6 +697,11 @@ def rag_simple(
     final_answer = correct_nepali_spelling(dedup_answer, llm)
 
     return final_answer
+
+
+
+
+
 
 
 # -------------------------------------------------------------------
